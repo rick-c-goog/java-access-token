@@ -19,6 +19,8 @@
 import com.google.auth.oauth2.IdToken;
 import com.google.auth.oauth2.IdTokenProvider.Option;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
+import com.google.auth.oauth2.IdTokenCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.AccessToken;
 import java.io.FileInputStream;
@@ -44,24 +46,41 @@ public class IdTokenFromServiceAccount {
 
     // Path to the service account json credential file.
     String jsonCredentialPath = "/home/admin_/access_token/rick-vertex-ai-key.json";
-    //GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
     
+    String bearerToken="";
+    
+    //Option 1: use SA key Access token, with Json key file
+    //bearerToken=getAccessTokenFromServiceAccount(jsonCredentialPath);
+    
+    // Option 2: Impersonate Service account get ID token, no need for Json key file
+    String serviceAccount="vertex-ai-consumer@rick-vertex-ai.iam.gserviceaccount.com";
+    String targetAudience = "https://example.com";
+    String scope="https://www.googleapis.com/auth/cloud-platform";
+    bearerToken= getIdTokenUsingOAuth2(serviceAccount,scope, targetAudience);
+
+    //Option 3: Get Service Account ID token directly with key file
+    // The url or target audience to obtain the ID token for Service Account
+    //String targetAudience = "https://example.com";
+    
+    // bearerToken=getIdTokenFromServiceAccount(jsonCredentialPath, targetAudience);
+    
+}
+  
+  public static String getAccessTokenFromServiceAccount(String jsonCredentialPath)
+      throws IOException {
     GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(jsonCredentialPath)).createScoped(Arrays.asList("https://www.googleapis.com/auth/cloud-platform"));
     credentials.refreshIfExpired();
      //AccessToken token = credentials.getAccessToken();
      // OR
      AccessToken token = credentials.refreshAccessToken();
-     System.out.println(token.getTokenValue());
-    
-     //The following is alternative way to get ID token, which another type of Bearer token
-    // The url or target audience to obtain the ID token for Service Account
-    //String targetAudience = "https://example.com";
-    
-    //getIdTokenFromServiceAccount(jsonCredentialPath, targetAudience);
-  }
-  
+     String accessToken=token.getTokenValue();
+     System.out.println(accessToken);
+     return accessToken;
+
+      }
+
   //alternative way to get ID token for a Service Account
-  public static void getIdTokenFromServiceAccount(String jsonCredentialPath, String targetAudience)
+  public static String getIdTokenFromServiceAccount(String jsonCredentialPath, String targetAudience)
       throws IOException {
 
     // Initialize the Service Account Credentials class with the path to the json file.
@@ -82,6 +101,47 @@ public class IdTokenFromServiceAccount {
 
     String token = idToken.getTokenValue();
     System.out.println("Generated ID token:"+token);
+    return token;
   }
+
+
+  public static String getIdTokenUsingOAuth2(
+      String impersonatedServiceAccount, String scope, String targetAudience) throws IOException {
+
+    // Construct the GoogleCredentials object which obtains the default configuration from your
+    // working environment.
+    GoogleCredentials googleCredentials = GoogleCredentials.getApplicationDefault();
+
+    // delegates: The chained list of delegates required to grant the final accessToken.
+    // For more information, see:
+    // https://cloud.google.com/iam/docs/create-short-lived-credentials-direct#sa-credentials-permissions
+    // Delegate is NOT USED here.
+    List<String> delegates = null;
+
+    // Create the impersonated credential.
+    ImpersonatedCredentials impersonatedCredentials =
+        ImpersonatedCredentials.create(
+            googleCredentials, impersonatedServiceAccount, delegates, Arrays.asList(scope), 300);
+
+    // Set the impersonated credential, target audience and token options.
+    IdTokenCredentials idTokenCredentials =
+        IdTokenCredentials.newBuilder()
+            .setIdTokenProvider(impersonatedCredentials)
+            .setTargetAudience(targetAudience)
+            // Setting this will include email in the id token.
+            .setOptions(Arrays.asList(Option.INCLUDE_EMAIL))
+            .build();
+
+    // Get the ID token.
+    // Once you've obtained the ID token, you can use it to make an authenticated call to the
+    // target audience.
+
+    AccessToken token = impersonatedCredentials.refreshAccessToken();
+    String accessToken=token.getTokenValue();
+    //String idToken=accessToken.getTokenValue();
+    System.out.println("Generated ID token:"+accessToken);
+    return accessToken;
+  }
+
 }
 // [END auth_cloud_idtoken_service_account]
