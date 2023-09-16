@@ -52,13 +52,36 @@ public class IdTokenFromServiceAccount {
      // OR
      AccessToken token = credentials.refreshAccessToken();
      System.out.println(token.getTokenValue());
-
-    // The url or target audience to obtain the ID token for.
+    
+     //The following is alternative way to get ID token, which another type of Bearer token
+    // The url or target audience to obtain the ID token for Service Account
     //String targetAudience = "https://example.com";
-
+    
     //getIdTokenFromServiceAccount(jsonCredentialPath, targetAudience);
   }
+  
+  //alternative way to get ID token for a Service Account
+  public static void getIdTokenFromServiceAccount(String jsonCredentialPath, String targetAudience)
+      throws IOException {
 
-  //}
+    // Initialize the Service Account Credentials class with the path to the json file.
+    ServiceAccountCredentials serviceAccountCredentials =
+        ServiceAccountCredentials.fromStream(new FileInputStream(jsonCredentialPath));
+
+    // Obtain the id token by providing the target audience.
+    // tokenOption: Enum of various credential-specific options to apply to the token. Applicable
+    // only for credentials obtained through Compute Engine or Impersonation.
+    List<Option> tokenOption = Arrays.asList();
+    IdToken idToken = serviceAccountCredentials.idTokenWithAudience(targetAudience, tokenOption);
+
+    // The following method can also be used to generate the ID token.
+    // IdTokenCredentials idTokenCredentials = IdTokenCredentials.newBuilder()
+    //     .setIdTokenProvider(serviceAccountCredentials)
+    //     .setTargetAudience(targetAudience)
+    //     .build();
+
+    String token = idToken.getTokenValue();
+    System.out.println("Generated ID token.");
+  }
 }
 // [END auth_cloud_idtoken_service_account]
