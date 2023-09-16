@@ -1,5 +1,6 @@
 # java-access-token
-
+Purpose: to generate access token from java code, instead of running
+gcloud auth print-access-token
 ## need to create a Service Account json key file
 
 ## maven build command:
