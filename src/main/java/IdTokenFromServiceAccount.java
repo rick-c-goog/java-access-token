@@ -81,7 +81,7 @@ public class IdTokenFromServiceAccount {
     //     .build();
 
     String token = idToken.getTokenValue();
-    System.out.println("Generated ID token.");
+    System.out.println("Generated ID token:"+token);
   }
 }
 // [END auth_cloud_idtoken_service_account]
